@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware\nfrom fastapi.staticfiles import StaticFiles\nfrom pathlib import Path
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import DateTime, Float, Integer, String, Text, create_engine, select
@@ -265,3 +265,4 @@ def campaigns():
         rows = db.scalars(select(Campaign).order_by(Campaign.created_at.desc())).all()
         return [{"id": x.id, "niche": x.niche, "location": x.location, "count": x.count,
                  "status": x.status, "created_at": x.created_at.isoformat()} for x in rows]
+\n\n# Serve the dashboard and API from the same local origin.\nWEB_DIR = Path(__file__).resolve().parent / 'web'\napp.mount('/', StaticFiles(directory=str(WEB_DIR), html=True), name='web')\n
