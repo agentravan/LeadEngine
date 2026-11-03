@@ -14,14 +14,14 @@ services:
       timeout: 5s
       retries: 10
   api:
-    build: ./backend
+    build:\n      context: .\n      dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://leadengine:${POSTGRES_PASSWORD:-change-this-local-password}@db:5432/leadengine
       CORS_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
       USER_AGENT: LeadEngine/1.0 (local business research)
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
