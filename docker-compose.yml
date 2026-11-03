@@ -14,7 +14,9 @@ services:
       timeout: 5s
       retries: 10
   api:
-    build:\n      context: .\n      dockerfile: backend/Dockerfile
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://leadengine:${POSTGRES_PASSWORD:-change-this-local-password}@db:5432/leadengine
