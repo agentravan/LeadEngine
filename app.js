@@ -33,14 +33,11 @@ async function search(){
  const b=$("searchBtn");b.disabled=true;$("searchMsg").textContent="Searching OpenStreetMap…";
  try{
   const niche=$("niche").value.trim(),location=$("location").value.trim(),city=$("city").value.trim(),limit=Math.min(100,Math.max(1,Number($("limit").value)||50));
-  const tags={"gyms":[["leisure","fitness_centre"],["leisure","sports_centre"]],"gym":[["leisure","fitness_centre"],["leisure","sports_centre"]],"salons":[["shop","hairdresser"],["shop","beauty"]],"salon":[["shop","hairdresser"],["shop","beauty"]],"dentists":[["amenity","dentist"],["healthcare","dentist"]],"dentist":[["amenity","dentist"],["healthcare","dentist"]],"restaurants":[["amenity","restaurant"],["amenity","cafe"],["amenity","fast_food"]],"restaurant":[["amenity","restaurant"],["amenity","cafe"],["amenity","fast_food"]],"clinics":[["amenity","clinic"],["amenity","doctors"],["healthcare","clinic"]],"clinic":[["amenity","clinic"],["amenity","doctors"],["healthcare","clinic"]],"hotels":[["tourism","hotel"],["tourism","guest_house"]],"hotel":[["tourism","hotel"],["tourism","guest_house"]],"real estate":[["office","estate_agent"]],"coaching centres":[["amenity","school"],["amenity","college"]]};
-  const pairs=tags[niche.toLowerCase()];if(!pairs)throw Error("Try gyms, salons, dentists, restaurants, clinics, hotels, real estate or coaching centres.");
-  const geo=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(location));
-  if(!geo.ok)throw Error("Location lookup unavailable. Retry later.");const places=await geo.json();if(!places.length)throw Error("Location not found. Include city and country.");
-  const {lat,lon}=places[0],clauses=pairs.map(([k,v])=>`nwr(around:3000,${lat},${lon})["${k}"="${v}"]["name"];`).join("");
-  const over=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent("[out:json][timeout:35];("+clauses+");out center tags;")});
-  if(!over.ok)throw Error("OpenStreetMap search is busy. Try again later.");const elements=(await over.json()).elements||[];
-  const rows=elements.slice(0,limit).flatMap(item=>{
+  const response=await fetch("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({niche,location,limit})});
+  const result=await response.json().catch(()=>({error:"Search service returned an invalid response."}));
+  if(!response.ok)throw Error(result.error||"Business search failed (HTTP "+response.status+").");
+  const elements=result.elements||[];
+  const rows=elements.flatMap(item=>{
    const t=item.tags||{},name=t.name||t.brand||t.operator;if(!name)return [];
    const address=["addr:housenumber","addr:street","addr:suburb","addr:neighbourhood","addr:city","addr:postcode"].map(k=>t[k]).filter(Boolean).join(", ");
    const website=t.website||t["contact:website"]||"",email=t.email||t["contact:email"]||"",phone=t.phone||t["contact:phone"]||"",social=t["contact:instagram"]||t.instagram||t["contact:facebook"]||t.facebook;
