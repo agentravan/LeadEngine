@@ -17,7 +17,7 @@ let ownerId = null;
 async function getOwnerId() {
   if (ownerId) return ownerId;
   if (!config.ownerEmail) {
-    const { data, error } = await db().from("app_owner").select("owner_id").eq("id", 1).maybeSingle();
+    const { data, error } = await db().from("le_app_owner").select("owner_id").eq("id", 1).maybeSingle();
     if (error && !/does not exist|relation/i.test(error.message)) throw error;
     if (data?.owner_id) return (ownerId = data.owner_id);
     throw new Error("No owner yet. Sign in and open Settings once to claim this LeadEngine.");
@@ -33,18 +33,18 @@ async function getOwnerId() {
 }
 
 async function getSettings(owner) {
-  const { data, error } = await db().from("outreach_settings").select("*").eq("owner_id", owner).maybeSingle();
+  const { data, error } = await db().from("le_outreach_settings").select("*").eq("owner_id", owner).maybeSingle();
   if (error) throw error;
   if (data) return data;
   const row = { owner_id: owner, automation_enabled: true, daily_limit: config.dailyLimit };
-  const ins = await db().from("outreach_settings").insert(row).select().single();
+  const ins = await db().from("le_outreach_settings").insert(row).select().single();
   if (ins.error) throw ins.error;
   return ins.data;
 }
 
 async function logEvent(owner, leadId, kind, fields = {}) {
   const row = { owner_id: owner, lead_id: leadId || null, kind, ...fields };
-  const { error } = await db().from("email_events").insert(row);
+  const { error } = await db().from("le_email_events").insert(row);
   // duplicate message ids are expected when an inbox message was already processed
   if (error && error.code !== "23505") throw error;
   return !error;
@@ -60,7 +60,7 @@ function istDay(d = new Date()) {
 
 // First signed-in user to save Settings becomes the owner (only when OWNER_EMAIL is not set).
 async function claimOwner(userId) {
-  const { error } = await db().from("app_owner").insert({ id: 1, owner_id: userId });
+  const { error } = await db().from("le_app_owner").insert({ id: 1, owner_id: userId });
   if (error && error.code !== "23505") throw error;
   ownerId = null;
   return getOwnerId();

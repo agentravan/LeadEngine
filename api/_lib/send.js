@@ -12,7 +12,7 @@ const jitter = () => pause(4000 + Math.floor(Math.random() * 6000));
 // Day0 emails that went out today (IST) and have not bounced.
 async function deliveredToday(owner) {
   const { startUtc } = istDay();
-  const { count, error } = await db().from("leads").select("id", { count: "exact", head: true })
+  const { count, error } = await db().from("le_leads").select("id", { count: "exact", head: true })
     .eq("owner_id", owner).gte("day0_sent_at", startUtc.toISOString()).neq("outreach_status", "bounced");
   if (error) throw error;
   return count || 0;
@@ -21,7 +21,7 @@ async function deliveredToday(owner) {
 async function sendFollowups(owner, deadline) {
   const stats = { day3: 0, day7: 0, errors: [] };
   const now = Date.now();
-  const { data, error } = await db().from("leads").select("*").eq("owner_id", owner).eq("outreach_status", "sent")
+  const { data, error } = await db().from("le_leads").select("*").eq("owner_id", owner).eq("outreach_status", "sent")
     .not("day0_sent_at", "is", null).order("day0_sent_at", { ascending: true }).limit(200);
   if (error) throw error;
   let sent = 0;
@@ -34,7 +34,7 @@ async function sendFollowups(owner, deadline) {
     else if (!lead.day3_body && !lead.day7_body) continue;
     if (!step) {
       if (lead.day3_sent_at && (lead.day7_sent_at || !lead.day7_body) && age >= 7)
-        await db().from("leads").update({ outreach_status: "completed" }).eq("id", lead.id);
+        await db().from("le_leads").update({ outreach_status: "completed" }).eq("id", lead.id);
       continue;
     }
     const r = await sendMail({
@@ -48,11 +48,11 @@ async function sendFollowups(owner, deadline) {
     if (r.status === "sent") {
       const upd = { [step + "_sent_at"]: new Date().toISOString() };
       if (step === "day7") { upd.outreach_status = "completed"; upd.status = lead.status === "New Leads" || lead.status === "Contacted" ? "Lost" : lead.status; }
-      await db().from("leads").update(upd).eq("id", lead.id);
+      await db().from("le_leads").update(upd).eq("id", lead.id);
       stats[step]++;
       sent++;
     } else if (r.status === "rejected") {
-      await db().from("leads").update({ outreach_status: "bounced", bounce_reason: r.reason }).eq("id", lead.id);
+      await db().from("le_leads").update({ outreach_status: "bounced", bounce_reason: r.reason }).eq("id", lead.id);
     } else if (r.status === "blocked") {
       stats.errors.push("Zoho blocked sending: " + r.reason);
       stats.blocked = true;
@@ -68,28 +68,28 @@ async function sendNew(owner, limit, deadline) {
   stats.deliveredBefore = await deliveredToday(owner);
   let need = limit - stats.deliveredBefore;
   if (need <= 0) return stats;
-  const { data, error } = await db().from("leads").select("*").eq("owner_id", owner).eq("outreach_status", "queued")
+  const { data, error } = await db().from("le_leads").select("*").eq("owner_id", owner).eq("outreach_status", "queued")
     .order("score", { ascending: false }).order("created_at", { ascending: true }).limit(need * 3 + 5);
   if (error) throw error;
 
   for (const lead of data || []) {
     if (need <= 0 || Date.now() > deadline - 40000) break;
     if (!lead.email || !(await hasMx(lead.email))) {
-      await db().from("leads").update({ outreach_status: "invalid_email" }).eq("id", lead.id);
+      await db().from("le_leads").update({ outreach_status: "invalid_email" }).eq("id", lead.id);
       stats.invalid++;
       continue;
     }
     const r = await sendMail({ to: lead.email, subject: lead.day0_subject, text: lead.day0_body });
     await logEvent(owner, lead.id, "day0_" + r.status, { message_id: r.messageId || null, subject: lead.day0_subject, to_email: lead.email, body: lead.day0_body, category: r.reason || null });
     if (r.status === "sent") {
-      await db().from("leads").update({
+      await db().from("le_leads").update({
         outreach_status: "sent", day0_sent_at: new Date().toISOString(), message_id: r.messageId || null,
         status: lead.status === "New Leads" ? "Contacted" : lead.status,
       }).eq("id", lead.id);
       stats.sent++;
       need--;
     } else if (r.status === "rejected") {
-      await db().from("leads").update({ outreach_status: "rejected", bounce_reason: r.reason }).eq("id", lead.id);
+      await db().from("le_leads").update({ outreach_status: "rejected", bounce_reason: r.reason }).eq("id", lead.id);
       stats.rejected++; // does not count, the loop moves to the next lead
     } else if (r.status === "blocked") {
       stats.errors.push("Zoho blocked sending: " + r.reason);
@@ -106,7 +106,7 @@ async function sendNew(owner, limit, deadline) {
 }
 
 async function queuedCount(owner) {
-  const { count, error } = await db().from("leads").select("id", { count: "exact", head: true }).eq("owner_id", owner).eq("outreach_status", "queued");
+  const { count, error } = await db().from("le_leads").select("id", { count: "exact", head: true }).eq("owner_id", owner).eq("outreach_status", "queued");
   if (error) throw error;
   return count || 0;
 }

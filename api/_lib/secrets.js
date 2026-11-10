@@ -37,7 +37,7 @@ function decrypt(str) {
 }
 
 async function readSecrets(owner) {
-  const { data, error } = await db().from("app_secrets").select("data").eq("owner_id", owner).maybeSingle();
+  const { data, error } = await db().from("le_app_secrets").select("data").eq("owner_id", owner).maybeSingle();
   if (error) {
     if (/does not exist|relation/i.test(error.message)) return {};
     throw error;
@@ -64,7 +64,7 @@ async function saveSecrets(owner, patch, clear = []) {
   const current = await readSecrets(owner);
   const next = { ...current, ...clean(patch) };
   for (const k of clear || []) if (FIELDS[k]) delete next[k];
-  const { error } = await db().from("app_secrets").upsert({ owner_id: owner, data: encrypt(next), updated_at: new Date().toISOString() });
+  const { error } = await db().from("le_app_secrets").upsert({ owner_id: owner, data: encrypt(next), updated_at: new Date().toISOString() });
   if (error) throw error;
   return next;
 }

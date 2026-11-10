@@ -14,9 +14,9 @@
 
   async function load() {
     const [l, s, e] = await Promise.all([
-      db.from("leads").select("id,name,email,phone,score,status,outreach_status,day0_subject,day0_body,day3_body,day7_body,whatsapp_msg,observations,pitch,day0_sent_at,day3_sent_at,day7_sent_at,last_reply_at,reply_count,auto_replies,notes,website,profile_url,created_at").not("outreach_status", "is", null).order("created_at", { ascending: false }).limit(500),
-      db.from("outreach_settings").select("*").maybeSingle(),
-      db.from("email_events").select("created_at,kind,category,subject,to_email,from_email,body,lead_id").order("created_at", { ascending: false }).limit(40),
+      db.from("le_leads").select("id,name,email,phone,score,status,outreach_status,day0_subject,day0_body,day3_body,day7_body,whatsapp_msg,observations,pitch,day0_sent_at,day3_sent_at,day7_sent_at,last_reply_at,reply_count,auto_replies,notes,website,profile_url,created_at").not("outreach_status", "is", null).order("created_at", { ascending: false }).limit(500),
+      db.from("le_outreach_settings").select("*").maybeSingle(),
+      db.from("le_email_events").select("created_at,kind,category,subject,to_email,from_email,body,lead_id").order("created_at", { ascending: false }).limit(40),
     ]);
     const err = l.error || s.error || e.error;
     if (err) { toast(err.message.includes("does not exist") ? "Run the Supabase SQL setup first (supabase/001_ai_outreach.sql)." : err.message); return; }
@@ -92,7 +92,7 @@
   }
 
   async function setOutreach(id, st) {
-    const { error } = await db.from("leads").update({ outreach_status: st }).eq("id", id);
+    const { error } = await db.from("le_leads").update({ outreach_status: st }).eq("id", id);
     if (error) return toast(error.message);
     $("modal").innerHTML = "";
     toast("Updated.");
@@ -101,7 +101,7 @@
 
   async function saveSettings(patch) {
     const row = { owner_id: user.id, automation_enabled: oSettings ? oSettings.automation_enabled : true, daily_limit: oSettings?.daily_limit || 10, ...patch, updated_at: new Date().toISOString() };
-    const { error } = await db.from("outreach_settings").upsert(row, { onConflict: "owner_id" });
+    const { error } = await db.from("le_outreach_settings").upsert(row, { onConflict: "owner_id" });
     if (error) return toast(error.message);
     toast("Saved.");
     drawOutreach();

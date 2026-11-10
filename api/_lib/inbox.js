@@ -27,7 +27,7 @@ function sinceDays(n) {
 
 async function loadContactedLeads(owner) {
   const { data, error } = await db()
-    .from("leads")
+    .from("le_leads")
     .select("*")
     .eq("owner_id", owner)
     .not("day0_sent_at", "is", null)
@@ -56,7 +56,7 @@ async function processInbox(owner, deadline) {
     if (Date.now() > deadline - 30000) break;
     if (!msg.from || msg.from === (config.zohoEmail || "").toLowerCase()) continue;
     // Skip anything already handled.
-    const seen = await db().from("email_events").select("id").eq("owner_id", owner).eq("message_id", msg.messageId).maybeSingle();
+    const seen = await db().from("le_email_events").select("id").eq("owner_id", owner).eq("message_id", msg.messageId).maybeSingle();
     if (seen.data) continue;
     stats.checked++;
     try {
@@ -66,7 +66,7 @@ async function processInbox(owner, deadline) {
         const lead = leads.find((l) => l.email && body.includes(l.email.toLowerCase()) && ["sent", "followup"].includes(l.outreach_status));
         await logEvent(owner, lead?.id, "bounce", { message_id: msg.messageId, subject: msg.subject, from_email: msg.from, body: msg.text.slice(0, 2000) });
         if (lead) {
-          await db().from("leads").update({ outreach_status: "bounced", bounce_reason: msg.subject.slice(0, 200), notes: appendNote(lead.notes, "Email bounced: " + msg.subject) }).eq("id", lead.id);
+          await db().from("le_leads").update({ outreach_status: "bounced", bounce_reason: msg.subject.slice(0, 200), notes: appendNote(lead.notes, "Email bounced: " + msg.subject) }).eq("id", lead.id);
           lead.outreach_status = "bounced";
           stats.bounces++;
         }
@@ -121,7 +121,7 @@ async function processInbox(owner, deadline) {
       const handOver = decision.needs_harshit || (!stop && !canAuto) || (lead.auto_replies || 0) + 1 >= config.maxAutoReplies;
       if (handOver && !stop) { update.outreach_status = "needs_harshit"; stats.needsHarshit++; }
       update.notes = appendNote(lead.notes, `Reply (${decision.category}): ${decision.summary || ""}`);
-      await db().from("leads").update(update).eq("id", lead.id);
+      await db().from("le_leads").update(update).eq("id", lead.id);
       Object.assign(lead, update);
 
       await notifyOwner(lead, msg, decision, canAuto, handOver && !stop);
@@ -133,7 +133,7 @@ async function processInbox(owner, deadline) {
 }
 
 async function recentThread(owner, leadId) {
-  const { data } = await db().from("email_events").select("kind,body,created_at").eq("owner_id", owner).eq("lead_id", leadId)
+  const { data } = await db().from("le_email_events").select("kind,body,created_at").eq("owner_id", owner).eq("lead_id", leadId)
     .in("kind", ["reply_received", "auto_reply_sent", "day3_sent", "day7_sent"]).order("created_at", { ascending: true }).limit(8);
   return (data || []).map((e) => `[${e.kind}] ${String(e.body || "").slice(0, 600)}`).join("\n") || "(none)";
 }

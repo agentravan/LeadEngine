@@ -15,8 +15,8 @@ async function startApp(){
 }
 async function refresh(){
  const [l,c]=await Promise.all([
-  db.from("leads").select("*").order("created_at",{ascending:false}),
-  db.from("campaigns").select("*").order("created_at",{ascending:false})
+  db.from("le_leads").select("*").order("created_at",{ascending:false}),
+  db.from("le_campaigns").select("*").order("created_at",{ascending:false})
  ]);
  if(l.error||c.error){toast((l.error||c.error).message);return;}
  leads=l.data||[];campaigns=c.data||[];drawDashboard();drawLeads();drawKanban("dashKanban");
@@ -36,8 +36,8 @@ async function search(){
    const score=(website?0:45)+(social?0:25)+(email?0:10);
    return [{owner_id:user.id,source_id:"osm:"+item.type+":"+item.id,name,category:niche,city,area:location,address,phone,website,email,profile_url:"https://www.openstreetmap.org/"+item.type+"/"+item.id,source:"OpenStreetMap",score,priority:score>=60?"High":score>=30?"Medium":"Low"}];
   });
-  if(rows.length){const {error}=await db.from("leads").upsert(rows,{onConflict:"owner_id,source_id",ignoreDuplicates:true});if(error)throw error;}
-  const {error:ce}=await db.from("campaigns").insert({owner_id:user.id,niche,location,count:rows.length});if(ce)throw ce;
+  if(rows.length){const {error}=await db.from("le_leads").upsert(rows,{onConflict:"owner_id,source_id",ignoreDuplicates:true});if(error)throw error;}
+  const {error:ce}=await db.from("le_campaigns").insert({owner_id:user.id,niche,location,count:rows.length});if(ce)throw ce;
   $("searchMsg").textContent="Found "+rows.length+" records. Refreshing…";await refresh();page("leads");
  }catch(e){$("searchMsg").textContent="Search failed";toast(e.message||"Unexpected error");}finally{b.disabled=false;}
 }
@@ -57,7 +57,7 @@ function drawLeads(){
  $("leadEmpty").classList.toggle("hidden",a.length>0);
 }
 function drawKanban(id){$(id).innerHTML=stages.map(s=>`<div class="lane" ondragover="event.preventDefault()" ondrop="dropCard(event,'${s}')"><h3>${s} (${leads.filter(x=>x.status===s).length})</h3>${leads.filter(x=>x.status===s).map(x=>`<div class="leadcard" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${x.id}')"><b>${esc(x.name)}</b><small>${esc(x.category)} · ${x.score} pts</small></div>`).join("")}</div>`).join("");}
-async function changeStatus(id,status){const {error}=await db.from("leads").update({status}).eq("id",id);if(error){toast(error.message);return;}const x=leads.find(v=>v.id===id);if(x)x.status=status;drawDashboard();drawLeads();drawKanban("kanban");}
+async function changeStatus(id,status){const {error}=await db.from("le_leads").update({status}).eq("id",id);if(error){toast(error.message);return;}const x=leads.find(v=>v.id===id);if(x)x.status=status;drawDashboard();drawLeads();drawKanban("kanban");}
 async function dropCard(e,status){e.preventDefault();await changeStatus(e.dataTransfer.getData("text/plain"),status);}
 function openLead(id){
  const x=leads.find(v=>v.id===id);if(!x)return;
@@ -65,7 +65,7 @@ function openLead(id){
 }
 function makeHook(id){const x=leads.find(v=>v.id===id);if(!x)return;const missing=x.website?"booking flow":"website";const demo=$("demo").value.trim();$("hook").value=`Hi ${x.name} team — I found your ${x.category.toLowerCase()} listing in ${x.area||x.city}. Have you considered a simple ${missing} to turn more local searches into enquiries? I can share a quick idea for ${$("service").value}.${demo?" Demo: "+demo:""}`;}
 function sendDraft(id){const x=leads.find(v=>v.id===id),m=$("hook").value.trim(),digits=(x?.phone||"").replace(/\D/g,"");if(!m||!digits){toast(!m?"Generate a hook first.":"No public phone number is available.");return;}window.open("https://wa.me/"+digits+"?text="+encodeURIComponent(m),"_blank","noopener");}
-async function saveNotes(id){const {error}=await db.from("leads").update({notes:$("leadNotes").value}).eq("id",id);if(error){toast(error.message);return;}const x=leads.find(v=>v.id===id);if(x)x.notes=$("leadNotes").value;toast("Notes saved.");}
+async function saveNotes(id){const {error}=await db.from("le_leads").update({notes:$("leadNotes").value}).eq("id",id);if(error){toast(error.message);return;}const x=leads.find(v=>v.id===id);if(x)x.notes=$("leadNotes").value;toast("Notes saved.");}
 function drawCampaigns(){$("campaignRows").innerHTML=campaigns.map(x=>`<tr><td>${esc(x.niche)}</td><td>${esc(x.location)}</td><td>${x.count}</td><td>${esc(x.status)}</td><td>${new Date(x.created_at).toLocaleString()}</td></tr>`).join("");}
 function exportCSV(){const keys=["name","category","city","area","address","phone","website","email","rating","reviews","score","priority","status","source","profile_url"];const lines=[keys.join(",")].concat(leads.map(x=>keys.map(k=>'"'+String(x[k]??"").replace(/"/g,'""')+'"').join(",")));const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download="leadengine.csv";a.click();URL.revokeObjectURL(a.href);}
 function showSignedOut(){window.leStarted=null;user=null;leads=[];campaigns=[];$("authScreen").classList.remove("hidden");$("logoutBtn").classList.add("hidden");["recent","leadRows","campaignRows","kanban","dashKanban"].forEach(k=>{if($(k))$(k).innerHTML="";});}

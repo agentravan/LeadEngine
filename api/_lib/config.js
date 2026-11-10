@@ -2,10 +2,10 @@
 const env = (k, d = "") => (process.env[k] ?? d).toString().trim();
 
 const config = {
-  supabaseUrl: env("SUPABASE_URL", "https://rmgtzuqpfjphtmtomrkm.supabase.co"),
+  supabaseUrl: env("SUPABASE_URL", "https://zeroeprznkwhanhzwmfv.supabase.co"),
   supabaseServiceKey: env("SUPABASE_SERVICE_ROLE_KEY"),
   // Public key, same one the browser uses (supabase-config.js). Used for password sign-in on the server.
-  supabasePublishableKey: env("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_XhUw9RQ4oJXnMEMGJOG7kA_JZuTBvrK"),
+  supabasePublishableKey: env("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_8Yoh-hHHjpkSb685dcfDrw_HlrAJCJP"),
   ownerEmail: env("OWNER_EMAIL").toLowerCase(), // the email you log in to LeadEngine with
   cronSecret: env("CRON_SECRET"),
 

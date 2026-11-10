@@ -51,7 +51,7 @@ async function existingKeys(owner) {
   const names = new Set(), domains = new Set();
   let from = 0;
   for (;;) {
-    const { data, error } = await db().from("leads").select("name,website,email").eq("owner_id", owner).range(from, from + 999);
+    const { data, error } = await db().from("le_leads").select("name,website,email").eq("owner_id", owner).range(from, from + 999);
     if (error) throw error;
     for (const r of data) {
       names.add(normName(r.name));
@@ -156,7 +156,7 @@ async function hunt(owner, want, deadline) {
         outreach_status: email ? "queued" : "manual",
       };
       if (stats.added >= want) return;
-      const { error } = await db().from("leads").upsert(row, { onConflict: "owner_id,source_id", ignoreDuplicates: true });
+      const { error } = await db().from("le_leads").upsert(row, { onConflict: "owner_id,source_id", ignoreDuplicates: true });
       if (error) throw error;
       stats.added++;
       if (email) stats.withEmail++;
@@ -165,7 +165,7 @@ async function hunt(owner, want, deadline) {
     }
   };
   await Promise.all([worker(), worker(), worker(), worker()]);
-  await db().from("campaigns").insert({ owner_id: owner, niche: "AI Hunt (HR)", location: "Gurugram / Delhi NCR", count: stats.added, status: "Completed" });
+  await db().from("le_campaigns").insert({ owner_id: owner, niche: "AI Hunt (HR)", location: "Gurugram / Delhi NCR", count: stats.added, status: "Completed" });
   await logEvent(owner, null, "hunt", { body: JSON.stringify(stats).slice(0, 4000) });
   return stats;
 }

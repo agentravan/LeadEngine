@@ -23,10 +23,10 @@ const since = (min) => new Date(Date.now() - min * 60000).toISOString();
 const hashCode = (email, code) => crypto.createHmac("sha256", "otp:" + config.supabaseServiceKey).update(email + ":" + code).digest("hex");
 
 async function log(req, email, kind, ok) {
-  await db().from("auth_attempts").insert({ email, ip: ipOf(req), ua: uaOf(req), kind, ok }).then(() => {}, () => {});
+  await db().from("le_auth_attempts").insert({ email, ip: ipOf(req), ua: uaOf(req), kind, ok }).then(() => {}, () => {});
 }
 async function count(filter) {
-  let q = db().from("auth_attempts").select("id", { count: "exact", head: true });
+  let q = db().from("le_auth_attempts").select("id", { count: "exact", head: true });
   for (const [k, v] of Object.entries(filter)) q = k === "after" ? q.gte("created_at", v) : q.eq(k, v);
   const { count: n } = await q;
   return n || 0;
@@ -54,7 +54,7 @@ async function mailReady() {
 async function alertNewDevice(req, user) {
   try {
     const ip = ipOf(req), ua = uaOf(req);
-    const { count: seen } = await db().from("auth_attempts").select("id", { count: "exact", head: true })
+    const { count: seen } = await db().from("le_auth_attempts").select("id", { count: "exact", head: true })
       .eq("email", normEmail(user.email)).eq("kind", "login").eq("ok", true).eq("ip", ip).eq("ua", ua).gte("created_at", since(60 * 24 * 30));
     if (seen > 1 || !(await mailReady())) return; // >1 because this login is already logged
     const when = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
@@ -93,7 +93,7 @@ async function forgot(req, res, b) {
   const email = normEmail(b.email);
   if (!validEmail(email)) return res.status(400).json({ error: "Enter a valid email." });
   const generic = { ok: true, message: "If this email has a LeadEngine account, a 6-digit code is on its way.", resendIn: OTP_GAP_S };
-  const { data: recent } = await db().from("auth_otps").select("created_at").eq("email", email).gte("created_at", since(60)).order("created_at", { ascending: false });
+  const { data: recent } = await db().from("le_auth_otps").select("created_at").eq("email", email).gte("created_at", since(60)).order("created_at", { ascending: false });
   if (recent?.length && Date.now() - Date.parse(recent[0].created_at) < OTP_GAP_S * 1000)
     return res.status(429).json({ error: "Please wait a minute before asking for another code." });
   if ((recent?.length || 0) >= OTP_PER_HOUR || (await count({ ip: ipOf(req), kind: "forgot", after: since(60) })) >= 15)
@@ -105,8 +105,8 @@ async function forgot(req, res, b) {
   if (!user) return res.json(generic); // same answer, so nobody can test which emails have accounts
 
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  await db().from("auth_otps").update({ used_at: new Date().toISOString() }).eq("email", email).is("used_at", null);
-  const { error } = await db().from("auth_otps").insert({ email, code_hash: hashCode(email, code), expires_at: new Date(Date.now() + OTP_MIN * 60000).toISOString(), ip: ipOf(req) });
+  await db().from("le_auth_otps").update({ used_at: new Date().toISOString() }).eq("email", email).is("used_at", null);
+  const { error } = await db().from("le_auth_otps").insert({ email, code_hash: hashCode(email, code), expires_at: new Date(Date.now() + OTP_MIN * 60000).toISOString(), ip: ipOf(req) });
   if (error) throw error;
   const { sendSystemMail } = require("./_lib/mail");
   const spaced = code.split("").join(" ");
@@ -125,7 +125,7 @@ async function forgot(req, res, b) {
 async function reset(req, res, b) {
   const email = normEmail(b.email), code = String(b.code || "").replace(/\D/g, ""), password = String(b.password || "");
   if (!validEmail(email) || code.length !== 6) return res.status(400).json({ error: "Enter the 6-digit code from your email." });
-  const { data: otp } = await db().from("auth_otps").select("*").eq("email", email).is("used_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: otp } = await db().from("le_auth_otps").select("*").eq("email", email).is("used_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!otp || Date.parse(otp.expires_at) < Date.now() || otp.attempts >= OTP_TRIES) {
     await log(req, email, "reset", false);
     return res.status(400).json({ error: "This code has expired. Ask for a new one.", expired: true });
@@ -133,7 +133,7 @@ async function reset(req, res, b) {
   const want = Buffer.from(String(otp.code_hash)), got = Buffer.from(hashCode(email, code));
   const good = want.length === got.length && crypto.timingSafeEqual(want, got);
   if (!good) {
-    await db().from("auth_otps").update({ attempts: otp.attempts + 1 }).eq("id", otp.id);
+    await db().from("le_auth_otps").update({ attempts: otp.attempts + 1 }).eq("id", otp.id);
     await log(req, email, "reset", false);
     const left = OTP_TRIES - otp.attempts - 1;
     return res.status(400).json({ error: left > 0 ? `Wrong code. ${left} ${left === 1 ? "try" : "tries"} left.` : "Wrong code. Ask for a new one.", expired: left <= 0 });
@@ -145,7 +145,7 @@ async function reset(req, res, b) {
   if (!user) return res.status(400).json({ error: "This code has expired. Ask for a new one.", expired: true });
   const { error } = await db().auth.admin.updateUserById(user.id, { password });
   if (error) return res.status(400).json({ error: error.message });
-  await db().from("auth_otps").update({ used_at: new Date().toISOString() }).eq("id", otp.id);
+  await db().from("le_auth_otps").update({ used_at: new Date().toISOString() }).eq("id", otp.id);
   await log(req, email, "reset", true);
   try {
     const { sendSystemMail } = require("./_lib/mail");
