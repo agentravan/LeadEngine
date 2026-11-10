@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/cron/run.js": { "maxDuration": 300 },
+    "api/outreach/run.js": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/cron/run?slot=hunt", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/run?slot=morning", "schedule": "30 4 * * 1-6" },
+    { "path": "/api/cron/run?slot=hunt", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/run?slot=noon", "schedule": "30 7 * * 1-6" },
+    { "path": "/api/cron/run?slot=afternoon", "schedule": "30 10 * * 1-6" },
+    { "path": "/api/cron/run?slot=evening", "schedule": "30 13 * * *" }
+  ]
+}

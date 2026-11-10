@@ -5,7 +5,7 @@ const stages = ["New Leads","Contacted","Qualified","Demo Scheduled","Closed/Won
 let user = null, leads = [], campaigns = [];
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500);}
-function page(p){["dashboard","search","leads","pipeline","campaigns"].forEach(x=>$("page-"+x).classList.toggle("hidden",x!==p));if(p==="leads")drawLeads();if(p==="pipeline")drawKanban("kanban");if(p==="campaigns")drawCampaigns();}
+function page(p){["dashboard","search","leads","pipeline","campaigns","outreach"].forEach(x=>$("page-"+x).classList.toggle("hidden",x!==p));if(p==="outreach"&&window.drawOutreach)window.drawOutreach();if(p==="leads")drawLeads();if(p==="pipeline")drawKanban("kanban");if(p==="campaigns")drawCampaigns();}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
 async function authAction(mode){
  const email=$("authEmail").value.trim(),password=$("authPassword").value;
