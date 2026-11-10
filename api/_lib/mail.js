@@ -19,6 +19,15 @@ function smtp() {
   return transport;
 }
 
+function resetTransport() { transport = null; }
+
+// System emails (OTP codes, security alerts). Throws on failure so the caller can report it.
+async function sendSystemMail({ to, subject, text, html }) {
+  const info = await smtp().sendMail({ from: { name: "LeadEngine Security", address: config.zohoEmail }, to, subject, text, html });
+  if (info.rejected && info.rejected.length) throw new Error("Recipient refused");
+  return info.messageId;
+}
+
 // Sends one plain-text email. Never throws for recipient problems: returns a status instead.
 // status: "sent" | "rejected" (recipient refused = does not count) | "error" (temporary/our side)
 async function sendMail({ to, subject, text, inReplyTo, references }) {
@@ -86,4 +95,4 @@ async function fetchInbox(since, max = 60) {
   return out;
 }
 
-module.exports = { sendMail, fetchInbox };
+module.exports = { resetTransport, sendSystemMail, sendMail, fetchInbox };

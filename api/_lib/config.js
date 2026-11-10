@@ -4,6 +4,8 @@ const env = (k, d = "") => (process.env[k] ?? d).toString().trim();
 const config = {
   supabaseUrl: env("SUPABASE_URL", "https://rmgtzuqpfjphtmtomrkm.supabase.co"),
   supabaseServiceKey: env("SUPABASE_SERVICE_ROLE_KEY"),
+  // Public key, same one the browser uses (supabase-config.js). Used for password sign-in on the server.
+  supabasePublishableKey: env("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_XhUw9RQ4oJXnMEMGJOG7kA_JZuTBvrK"),
   ownerEmail: env("OWNER_EMAIL").toLowerCase(), // the email you log in to LeadEngine with
   cronSecret: env("CRON_SECRET"),
 
@@ -12,9 +14,11 @@ const config = {
   aiBaseUrl: env("AI_BASE_URL", "https://integrate.api.nvidia.com/v1"),
   aiModel: env("AI_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5"),
 
-  // Web search: serper | tavily | brave
+  // Web search: serper | tavily | brave | brightdata
+  // These, Zoho and the AI key can also be set on the app's Settings page (stored encrypted, see secrets.js).
   searchProvider: env("SEARCH_PROVIDER", "serper").toLowerCase(),
   searchKey: env("SEARCH_API_KEY"),
+  searchZone: env("BRIGHTDATA_ZONE", "serp_api1"),
 
   // Zoho Mail
   zohoEmail: env("ZOHO_EMAIL"),

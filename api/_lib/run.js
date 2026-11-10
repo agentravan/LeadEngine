@@ -3,15 +3,18 @@ const { getOwnerId, getSettings, logEvent, istDay } = require("./db");
 const { processInbox } = require("./inbox");
 const { sendFollowups, sendNew, queuedCount } = require("./send");
 const { hunt } = require("./hunt");
+const { applySecrets } = require("./secrets");
 
 // One automation pass. slot: hunt | morning | noon | afternoon | evening | manual
 async function runOnce(slot = "manual", budgetMs = 280000) {
   const started = Date.now();
   const deadline = started + budgetMs;
-  const missing = config.missing(["supabaseServiceKey", "ownerEmail", "aiKey", "searchKey", "zohoEmail", "zohoPassword"]);
-  if (missing.length) return { ok: false, error: "Missing environment variables: " + missing.join(", ") };
-
+  if (!config.supabaseServiceKey) return { ok: false, error: "SUPABASE_SERVICE_ROLE_KEY is not set in Vercel" };
   const owner = await getOwnerId();
+  await applySecrets(owner);
+  const names = { aiKey: "NVIDIA AI key", searchKey: "Search API key", zohoEmail: "Zoho email", zohoPassword: "Zoho app password" };
+  const missing = config.missing(Object.keys(names));
+  if (missing.length) return { ok: false, error: "Add these on the Settings page: " + missing.map((k) => names[k]).join(", ") };
   const settings = await getSettings(owner);
   const report = { slot, day: istDay().day, paused: !settings.automation_enabled };
   if (!settings.automation_enabled) return { ok: true, ...report };

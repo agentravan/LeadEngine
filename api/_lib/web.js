@@ -34,7 +34,19 @@ async function search(query, num = 10) {
     });
     if (!r.ok) throw new Error("Brave HTTP " + r.status);
     items = ((await r.json()).web?.results || []).map((x) => ({ title: x.title, url: x.url, snippet: x.description }));
-  } else throw new Error("Unknown SEARCH_PROVIDER " + p + " (use serper, tavily or brave)");
+  } else if (p === "brightdata") {
+    // Bright Data SERP API (github.com/luminati-io/google-search-api). Needs an API token and a SERP zone name.
+    const url = "https://www.google.com/search?hl=en&gl=in&num=" + num + "&q=" + encodeURIComponent(query) + "&brd_json=1";
+    const r = await fetch("https://api.brightdata.com/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + config.searchKey },
+      body: JSON.stringify({ zone: config.searchZone || "serp_api1", url, format: "raw" }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!r.ok) throw new Error("Bright Data HTTP " + r.status);
+    const j = await r.json().catch(() => ({}));
+    items = (j.organic || []).map((x) => ({ title: x.title, url: x.link || x.url, snippet: x.description || x.snippet }));
+  } else throw new Error("Unknown search provider " + p + " (use serper, tavily, brave or brightdata)");
   return items.filter((x) => x.url);
 }
 

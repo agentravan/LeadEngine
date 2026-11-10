@@ -34,18 +34,57 @@ table{min-width:740px}th{background:#f8fafc;color:#667085;font-size:11px;text-tr
 .modal{background:#fff;color:#172033;border:1px solid #e6eaf1;box-shadow:0 20px 60px #0002}.modal p{color:#475467}
 a{color:#4f46e5}
 @media(max-width:800px){.shell{grid-template-columns:58px minmax(0,1fr)}.top{gap:12px}.page{padding:18px 12px}.heading h1{font-size:25px}.panel{padding:15px}.stats{gap:8px}.stat{padding:12px}}
-</style></head><body>
-<style>
-.authscreen{position:fixed;inset:0;background:#070d1c;z-index:30;display:grid;place-items:center;padding:20px}.authcard{width:min(420px,100%);background:#101d38;border:1px solid #3b5681;border-radius:16px;padding:26px}.authcard h2{margin:0 0 8px}.authcard input{width:100%;margin:8px 0;padding:12px;border-radius:8px;border:1px solid #3b5681;background:#0b1530;color:#fff}.authcard button{margin:8px 8px 0 0}.authhint{color:#9db0d0;font-size:12px}.hidden{display:none!important}
-</style>
-<div id="authScreen" class="authscreen">
- <div class="authcard"><h2>LeadEngine Login</h2><p class="authhint">Sign in to access your private leads and campaigns.</p>
- <input id="authEmail" type="email" placeholder="Work email" autocomplete="username">
- <input id="authPassword" type="password" placeholder="Password (minimum 8 characters)" autocomplete="current-password">
- <div><button id="signInBtn" class="btn primary">Sign in</button><button id="signUpBtn" class="btn">Create account</button></div>
- <p id="authMsg" class="authhint">Use your own account. Your data is private to you.</p></div>
+</style><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Sora:wght@600;700&display=swap"><link rel="stylesheet" href="login.css"></head><body>
+<div id="authScreen" class="le-auth" role="main">
+ <section class="le-radar" aria-hidden="true">
+  <div class="le-scope"><i class="le-blip" style="left:30%;top:34%"></i><i class="le-blip b2" style="left:62%;top:58%"></i><i class="le-blip b3" style="left:44%;top:72%"></i><i class="le-blip" style="left:70%;top:26%"></i></div>
+  <div class="mark"><i>L</i>LeadEngine</div>
+  <div class="le-copy"><h1>Har subah naye leads. <em>Aapka inbox,</em> aapke rules.</h1><p>AI har din Gurugram ki hiring companies dhoondhta hai, email bhejta hai aur replies sambhalta hai. Andar aane ke liye sign in karein.</p></div>
+  <div class="le-feed"><div><i class="dot"></i><b>Hunt 08:00</b> Gurugram · hiring<span>+12</span></div><div><i class="dot"></i><b>Send 10:00</b> Day0 · Zoho<span>10/10</span></div><div><i class="dot"></i><b>Inbox 19:00</b> replies<span>2 new</span></div></div>
+ </section>
+ <section class="le-side">
+  <div class="le-card">
+   <div class="le-steps hidden" id="leSteps" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+
+   <form id="leLogin" class="le-form" novalidate>
+    <div><h2>Welcome back</h2><p class="le-sub">Apne LeadEngine account se sign in karein.</p></div>
+    <label class="le-field" for="authEmail">Email<span class="le-input"><input id="authEmail" type="email" autocomplete="username" inputmode="email" required></span></label>
+    <label class="le-field" for="authPassword">Password<span class="le-input"><input id="authPassword" type="password" autocomplete="current-password" required><button type="button" class="eye" data-eye="authPassword" aria-label="Show password">Show</button></span></label>
+    <div id="leCaps" class="le-caps hidden">Caps Lock on hai.</div>
+    <div class="le-row"><label class="le-check" for="leRemember"><input id="leRemember" type="checkbox">Is device par yaad rakhein</label><button type="button" class="le-link" id="leForgotLink">Forgot password?</button></div>
+    <div id="leLoginMsg" class="le-msg hidden" role="alert"></div>
+    <button class="le-btn" id="signInBtn" type="submit">Sign in</button>
+    <div class="le-foot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>5 galat try ke baad 15 minute lock. Naye device se login par email alert.</span></div>
+   </form>
+
+   <form id="leForgot" class="le-form hidden" novalidate>
+    <div><h2>Password reset</h2><p class="le-sub">Apna email daalein. Hum us par 6 digit ka code bhejenge. Koi link nahi.</p></div>
+    <label class="le-field" for="leFEmail">Email<span class="le-input"><input id="leFEmail" type="email" autocomplete="username" inputmode="email" required></span></label>
+    <div id="leForgotMsg" class="le-msg hidden" role="alert"></div>
+    <button class="le-btn" id="leSendCode" type="submit">Code bhejein</button>
+    <button type="button" class="le-link" data-back>← Sign in par wapas</button>
+   </form>
+
+   <form id="leCode" class="le-form hidden" novalidate>
+    <div><h2>Code daalein</h2><p class="le-sub" id="leCodeSub">Email par aaya 6 digit code daalein. 10 minute tak valid hai.</p></div>
+    <div class="le-otp" id="leOtp"><input id="leD0" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1"><input id="leD1" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 2"><input id="leD2" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 3"><input id="leD3" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 4"><input id="leD4" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 5"><input id="leD5" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 6"></div>
+    <div id="leCodeMsg" class="le-msg hidden" role="alert"></div>
+    <button class="le-btn" id="leVerify" type="submit">Code check karein</button>
+    <div class="le-row"><button type="button" class="le-link" id="leResend" disabled>Naya code (60s)</button><button type="button" class="le-link" data-back>Sign in par wapas</button></div>
+   </form>
+
+   <form id="leNewPass" class="le-form hidden" novalidate>
+    <div><h2>Naya password</h2><p class="le-sub">Kam se kam 8 characters, letters aur numbers dono.</p></div>
+    <label class="le-field" for="leP1">Naya password<span class="le-input"><input id="leP1" type="password" autocomplete="new-password" required><button type="button" class="eye" data-eye="leP1" aria-label="Show password">Show</button></span></label>
+    <div class="le-meter" aria-hidden="true"><i id="leMeter"></i></div>
+    <label class="le-field" for="leP2">Password dobara<span class="le-input"><input id="leP2" type="password" autocomplete="new-password" required></span></label>
+    <div id="leNewMsg" class="le-msg hidden" role="alert"></div>
+    <button class="le-btn" id="leSavePass" type="submit">Password save karein</button>
+   </form>
+  </div>
+ </section>
 </div>
-<div class="shell"><aside class="rail"><div class="logo">L</div><button data-page="dashboard">⌂</button><button data-page="search">⌕</button><button data-page="leads">▤</button><button data-page="pipeline">◫</button><button data-page="campaigns">◷</button><button data-page="outreach" title="AI Outreach">✉</button></aside><main class="main"><header class="top"><div class="brand"><span>◆</span> LeadEngine</div><nav class="nav"><button data-page="dashboard">Dashboard</button><button data-page="leads">Leads</button><button data-page="pipeline">Pipeline</button><button data-page="campaigns">Campaigns</button><button data-page="outreach">AI Outreach</button></nav><div class="spacer"></div><button id="logoutBtn" class="btn">Sign out</button></header><div class="page">
+<div class="shell"><aside class="rail"><div class="logo">L</div><button data-page="dashboard">⌂</button><button data-page="search">⌕</button><button data-page="leads">▤</button><button data-page="pipeline">◫</button><button data-page="campaigns">◷</button><button data-page="outreach" title="AI Outreach">✉</button><button data-page="settings" title="Settings">⚙</button></aside><main class="main"><header class="top"><div class="brand"><span>◆</span> LeadEngine</div><nav class="nav"><button data-page="dashboard">Dashboard</button><button data-page="leads">Leads</button><button data-page="pipeline">Pipeline</button><button data-page="campaigns">Campaigns</button><button data-page="outreach">AI Outreach</button><button data-page="settings">Settings</button></nav><div class="spacer"></div><span id="leIdleHint" class="muted" title="Kuch na karne par auto sign-out"></span><button id="logoutBtn" class="btn">Sign out</button></header><div class="page">
 <section id="page-dashboard"><div class="heading"><div><div class="eyebrow">LOCAL BUSINESS INTELLIGENCE</div><h1>Sales Dashboard</h1><div class="muted">Discover, qualify and manage your local business prospects.</div></div><button class="btn primary" data-page="search">＋ New Search</button></div><div class="stats"><div class="card stat"><b id="total">0</b><span>Total Leads</span></div><div class="card stat"><b id="newCount">0</b><span>New Leads</span></div><div class="card stat"><b id="qualified">0</b><span>Qualified Leads</span></div><div class="card stat"><b id="conversion">—</b><span>Conversion Rate</span></div><div class="card stat"><b>—</b><span>Response Time</span></div><div class="card stat"><b id="hot">0</b><span>Hot Leads</span></div></div><div class="layout"><div class="stack"><div class="card panel"><h2>Recent Leads</h2><div class="tablewrap"><table><thead><tr><th>Business</th><th>Category</th><th>Location</th><th>Score</th><th>Status</th><th>Action</th></tr></thead><tbody id="recent"></tbody></table></div></div><div class="card panel"><h2>Pipeline Overview</h2><div class="kanban" id="dashKanban"></div></div></div><div class="stack"><div class="card panel"><h2>Lead Sources</h2><div class="sideitem"><span>OpenStreetMap</span><b id="sourceOSM">0</b></div><div class="sideitem"><span>Manual</span><b id="sourceManual">0</b></div><div class="sideitem"><span>Website records</span><b id="sourceWeb">0</b></div></div><div class="card panel"><h2>Quick Actions</h2><button class="btn" data-page="search">Find businesses</button> <button class="btn" id="export">Export CSV</button><p class="muted">WhatsApp drafts require human review. Automated calls are disabled until contact consent and provider configuration are verified.</p></div></div></div></section>
 <section id="page-search" class="hidden"><div class="heading"><div><div class="eyebrow">PROSPECT DISCOVERY</div><h1>Find Local Businesses</h1><div class="muted">Enter any niche and any location.</div></div></div><div class="card panel"><div class="formgrid"><label class="field">Target Niche<input id="niche" value="Gyms" list="niches"><datalist id="niches"><option>Gyms</option><option>Salons</option><option>Dentists</option><option>Restaurants</option><option>Clinics</option><option>Hotels</option><option>Real Estate</option><option>Coaching Centres</option></datalist></label><label class="field">Target Location<input id="location" value="Sector 56, Gurugram, Haryana, India"></label><label class="field">City<input id="city" value="Gurugram"></label><label class="field">Maximum results<input id="limit" type="number" value="50" min="1" max="100"></label></div><div class="notice">This version uses OpenStreetMap, not Google Maps scraping. OSM data may be incomplete. The upstream Google Maps scraper is an unofficial extractor and automated extraction may conflict with Google's terms; no proxies or anti-bot bypasses are used.</div><div class="row"><button id="searchBtn" class="btn primary">⌕ Find Businesses</button><span id="searchMsg" class="muted">Ready.</span></div></div></section>
 <section id="page-leads" class="hidden"><div class="heading"><div><div class="eyebrow">PROSPECT MANAGEMENT</div><h1>All Leads</h1></div><button id="export2" class="btn">⇩ Export CSV</button></div><div class="card panel"><div class="filters"><input id="q" class="filter search" placeholder="Search business / location"><select id="statusFilter" class="filter"><option value="">All statuses</option><option>New Leads</option><option>Contacted</option><option>Qualified</option><option>Demo Scheduled</option><option>Closed/Won</option><option>Lost</option></select><input id="minScore" class="filter" type="number" placeholder="Min score"></div><div class="tablewrap"><table><thead><tr><th>Business</th><th>Address</th><th>Phone</th><th>Website</th><th>Score</th><th>Status</th><th>Outreach</th></tr></thead><tbody id="leadRows"></tbody></table></div><div id="leadEmpty" class="empty">No leads match these filters.</div></div></section>
@@ -59,4 +98,24 @@ a{color:#4f46e5}
 <div class="card panel"><h2>Outreach</h2><div class="row"><select id="oFilter" class="filter"><option value="">All</option><option>queued</option><option>sent</option><option>replied</option><option>needs_harshit</option><option>manual</option><option>bounced</option><option>rejected</option><option>invalid_email</option><option>do_not_contact</option><option>completed</option><option>imported</option></select></div><div class="tablewrap"><table><thead><tr><th>Business</th><th>Email / Phone</th><th>Score</th><th>Status</th><th>Day0</th><th>Day3</th><th>Day7</th><th></th></tr></thead><tbody id="oRows"></tbody></table></div></div>
 <div class="card panel"><h2>Activity</h2><div class="tablewrap"><table><thead><tr><th>When</th><th>Event</th><th>Lead</th><th>Detail</th></tr></thead><tbody id="oEvents"></tbody></table></div></div>
 </section>
-</div></main></div><div id="toast" class="toast hidden"></div><div id="modal"></div><script src="supabase-config.js"></script><script src="app.js"></script><script src="outreach.js"></script></body></html>
+<section id="page-settings" class="hidden"><div class="heading"><div><div class="eyebrow">KEYS · PASSWORDS · SECURITY</div><h1>Settings</h1><div class="muted">Yahan daali har key server par encrypt hokar save hoti hai. Save ke baad sirf aakhri 4 akshar dikhte hain, poori value kabhi browser mein wapas nahi aati.</div></div><div class="row"><button id="sTest" class="btn">Connection test</button><button id="sSave" class="btn primary">Save</button></div></div>
+<p id="sMsg" class="muted"></p>
+<div class="card panel"><h2>Zoho Mail</h2><div class="formgrid">
+ <label class="field">Zoho email<input id="s_zohoEmail" type="email" autocomplete="off" placeholder="Teamwork.hrsolution@zohomail.in"></label>
+ <label class="field">Zoho App Password<input id="s_zohoPassword" type="password" autocomplete="new-password" placeholder="Zoho → Security → App Passwords"></label>
+ <label class="field">Alert email (replies yahan aayenge)<input id="s_notifyEmail" type="email" autocomplete="off" placeholder="Khaali chhodein to Zoho email"></label>
+ <label class="field">SMTP host<input id="s_smtpHost" autocomplete="off" placeholder="smtp.zoho.in"></label>
+ <label class="field">IMAP host<input id="s_imapHost" autocomplete="off" placeholder="imap.zoho.in"></label>
+</div></div>
+<div class="card panel"><h2>Lead search</h2><div class="formgrid">
+ <label class="field">Search provider<select id="s_searchProvider"><option value="">(Vercel default)</option><option value="brightdata">Bright Data SERP API</option><option value="serper">Serper</option><option value="tavily">Tavily</option><option value="brave">Brave</option></select></label>
+ <label class="field">Search API key<input id="s_searchKey" type="password" autocomplete="new-password" placeholder="API key / token"></label>
+ <label class="field">Bright Data zone<input id="s_searchZone" autocomplete="off" placeholder="serp_api1"></label>
+</div><div class="notice">Bright Data: brightdata.com par account banaiye ($5 free credit), "SERP API" zone banaiye, phir Account settings → API key copy karke yahan daaliye. Zone ka naam wahi likhiye jo aapne rakha.</div></div>
+<div class="card panel"><h2>AI (NVIDIA)</h2><div class="formgrid">
+ <label class="field">NVIDIA API key<input id="s_aiKey" type="password" autocomplete="new-password" placeholder="nvapi-…"></label>
+ <label class="field">AI model<input id="s_aiModel" autocomplete="off" placeholder="nvidia/llama-3.3-nemotron-super-49b-v1.5"></label>
+</div></div>
+<div class="card panel"><h2>Security</h2><div id="sSec" class="muted"></div><div class="row"><button id="sLogoutAll" class="btn">Sab devices se sign out</button></div></div>
+</section>
+</div></main></div><div id="toast" class="toast hidden"></div><div id="modal"></div><script src="supabase-config.js"></script><script src="app.js"></script><script src="login.js"></script><script src="outreach.js"></script><script src="settings.js"></script></body></html>

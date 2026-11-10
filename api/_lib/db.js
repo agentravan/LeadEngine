@@ -13,9 +13,15 @@ function db() {
 }
 
 let ownerId = null;
+// Owner = OWNER_EMAIL if set, otherwise the account that claimed the app on the Settings page.
 async function getOwnerId() {
   if (ownerId) return ownerId;
-  if (!config.ownerEmail) throw new Error("OWNER_EMAIL is not set");
+  if (!config.ownerEmail) {
+    const { data, error } = await db().from("app_owner").select("owner_id").eq("id", 1).maybeSingle();
+    if (error && !/does not exist|relation/i.test(error.message)) throw error;
+    if (data?.owner_id) return (ownerId = data.owner_id);
+    throw new Error("No owner yet. Sign in and open Settings once to claim this LeadEngine.");
+  }
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await db().auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
@@ -52,4 +58,12 @@ function istDay(d = new Date()) {
   return { day, startUtc, weekday: ist.getUTCDay() };
 }
 
-module.exports = { db, getOwnerId, getSettings, logEvent, istDay };
+// First signed-in user to save Settings becomes the owner (only when OWNER_EMAIL is not set).
+async function claimOwner(userId) {
+  const { error } = await db().from("app_owner").insert({ id: 1, owner_id: userId });
+  if (error && error.code !== "23505") throw error;
+  ownerId = null;
+  return getOwnerId();
+}
+
+module.exports = { db, getOwnerId, claimOwner, getSettings, logEvent, istDay };

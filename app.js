@@ -5,20 +5,12 @@ const stages = ["New Leads","Contacted","Qualified","Demo Scheduled","Closed/Won
 let user = null, leads = [], campaigns = [];
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500);}
-function page(p){["dashboard","search","leads","pipeline","campaigns","outreach"].forEach(x=>$("page-"+x).classList.toggle("hidden",x!==p));if(p==="outreach"&&window.drawOutreach)window.drawOutreach();if(p==="leads")drawLeads();if(p==="pipeline")drawKanban("kanban");if(p==="campaigns")drawCampaigns();}
+function page(p){["dashboard","search","leads","pipeline","campaigns","outreach","settings"].forEach(x=>$("page-"+x).classList.toggle("hidden",x!==p));if(p==="outreach"&&window.drawOutreach)window.drawOutreach();if(p==="settings"&&window.drawSettings)window.drawSettings();if(p==="leads")drawLeads();if(p==="pipeline")drawKanban("kanban");if(p==="campaigns")drawCampaigns();}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
-async function authAction(mode){
- const email=$("authEmail").value.trim(),password=$("authPassword").value;
- if(!email||password.length<8){$("authMsg").textContent="Enter a valid email and password of at least 8 characters.";return;}
- $("authMsg").textContent="Please wait…";
- const {data,error}=mode==="signup"?await db.auth.signUp({email,password}):await db.auth.signInWithPassword({email,password});
- if(error){$("authMsg").textContent=error.message;return;}
- if(mode==="signup"&&!data.session){$("authMsg").textContent="Account created. Check your email to confirm, then sign in.";return;}
- user=data.user;await startApp();
-}
 async function startApp(){
  if(!user){$("authScreen").classList.remove("hidden");return;}
  $("authScreen").classList.add("hidden");$("logoutBtn").classList.remove("hidden");
+ if(window.leOnSignedIn)window.leOnSignedIn(user);
  await refresh();
 }
 async function refresh(){
@@ -76,10 +68,11 @@ function sendDraft(id){const x=leads.find(v=>v.id===id),m=$("hook").value.trim()
 async function saveNotes(id){const {error}=await db.from("leads").update({notes:$("leadNotes").value}).eq("id",id);if(error){toast(error.message);return;}const x=leads.find(v=>v.id===id);if(x)x.notes=$("leadNotes").value;toast("Notes saved.");}
 function drawCampaigns(){$("campaignRows").innerHTML=campaigns.map(x=>`<tr><td>${esc(x.niche)}</td><td>${esc(x.location)}</td><td>${x.count}</td><td>${esc(x.status)}</td><td>${new Date(x.created_at).toLocaleString()}</td></tr>`).join("");}
 function exportCSV(){const keys=["name","category","city","area","address","phone","website","email","rating","reviews","score","priority","status","source","profile_url"];const lines=[keys.join(",")].concat(leads.map(x=>keys.map(k=>'"'+String(x[k]??"").replace(/"/g,'""')+'"').join(",")));const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download="leadengine.csv";a.click();URL.revokeObjectURL(a.href);}
-$("signInBtn").onclick=()=>authAction("signin");$("signUpBtn").onclick=()=>authAction("signup");
-$("logoutBtn").onclick=async()=>{await db.auth.signOut();user=null;leads=[];campaigns=[];$("authScreen").classList.remove("hidden");$("logoutBtn").classList.add("hidden");};
+function showSignedOut(){window.leStarted=null;user=null;leads=[];campaigns=[];$("authScreen").classList.remove("hidden");$("logoutBtn").classList.add("hidden");["recent","leadRows","campaignRows","kanban","dashKanban"].forEach(k=>{if($(k))$(k).innerHTML="";});}
+window.showSignedOut=showSignedOut;
+$("logoutBtn").onclick=()=>window.leSignOut?window.leSignOut("manual"):db.auth.signOut().then(showSignedOut);
 $("searchBtn").onclick=search;$("export").onclick=exportCSV;$("export2").onclick=exportCSV;
 ["q","statusFilter","minScore"].forEach(k=>$(k).addEventListener("input",drawLeads));
 window.openLead=openLead;window.makeHook=makeHook;window.sendDraft=sendDraft;window.changeStatus=changeStatus;window.dropCard=dropCard;window.saveNotes=saveNotes;
-db.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;if(user)startApp();});
-db.auth.getSession().then(({data})=>{user=data.session?.user||null;startApp();});
+db.auth.onAuthStateChange((event,session)=>{const u=session?.user||null;if(!u){if(user||event==="SIGNED_OUT")showSignedOut();return;}const fresh=!user||user.id!==u.id;user=u;if(fresh&&window.leStarted!==u.id){window.leStarted=u.id;startApp();}});
+db.auth.getSession().then(({data})=>{user=data.session?.user||null;if(user)window.leStarted=user.id;startApp();});
